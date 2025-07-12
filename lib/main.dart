@@ -19,8 +19,56 @@ class BusSyncApp extends StatelessWidget {
         primarySwatch: Colors.lightBlue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: const MapScreen(),
+      home: const MainScreen(),
       debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int _currentIndex = 0;
+
+  final List<Widget> _screens = [
+    const MapScreen(),
+    const RoutesScreen(),
+    const ScheduleScreen(),
+    const ProfileScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _screens[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        selectedItemColor: Colors.lightBlue,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Map'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.directions_bus),
+            label: 'Routes',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.schedule),
+            label: 'Schedule',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
     );
   }
 }
@@ -143,14 +191,14 @@ class _MapScreenState extends State<MapScreen> {
         FloatingActionButton.small(
           heroTag: 'toggle',
           tooltip: 'Toggle tile style',
-          onPressed: _toggleTileStyle,
+          onPressed: _changeTileStyle,
           child: const Icon(Icons.layers),
         ),
         const SizedBox(height: 8),
         FloatingActionButton.small(
           heroTag: 'center',
           tooltip: 'Re‑center on Manila',
-          onPressed: _recenterMap,
+          onPressed: _returnPosition,
           child: const Icon(Icons.my_location),
         ),
       ],
@@ -199,11 +247,11 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  void _toggleTileStyle() {
+  void _changeTileStyle() {
     setState(() => _isDarkTiles = !_isDarkTiles);
   }
 
-  void _recenterMap() {
+  void _returnPosition() {
     _mapController.move(_initialPosition, _initialZoom);
     setState(() => _currentMarkerPosition = _initialPosition);
   }
@@ -212,5 +260,105 @@ class _MapScreenState extends State<MapScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+// Placeholder screens for the other tabs
+class RoutesScreen extends StatelessWidget {
+  const RoutesScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Bus Routes'),
+        backgroundColor: Colors.lightBlue,
+        foregroundColor: Colors.white,
+      ),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.directions_bus, size: 80, color: Colors.lightBlue),
+            SizedBox(height: 16),
+            Text(
+              'Bus Routes',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'View available bus routes and stops',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ScheduleScreen extends StatelessWidget {
+  const ScheduleScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Schedule'),
+        backgroundColor: Colors.lightBlue,
+        foregroundColor: Colors.white,
+      ),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.schedule, size: 80, color: Colors.lightBlue),
+            SizedBox(height: 16),
+            Text(
+              'Bus Schedule',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Check bus timings and schedules',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Profile'),
+        backgroundColor: Colors.lightBlue,
+        foregroundColor: Colors.white,
+      ),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.person, size: 80, color: Colors.lightBlue),
+            SizedBox(height: 16),
+            Text(
+              'User Profile',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Manage your account and preferences',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
