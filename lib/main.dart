@@ -73,6 +73,21 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
+// Bus information model
+class BusInfo {
+  final String busNumber;
+  final String route;
+  final String eta;
+  final LatLng location;
+
+  BusInfo({
+    required this.busNumber,
+    required this.route,
+    required this.eta,
+    required this.location,
+  });
+}
+
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -80,27 +95,72 @@ class MapScreen extends StatefulWidget {
   State<MapScreen> createState() => _MapScreenState();
 }
 
-class _MapScreenState extends State<MapScreen> {
+class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   static const LatLng _initialPosition = LatLng(13.7564, 121.0583);
-  static const double _initialZoom = 13.0;
+  static const double _initialZoom = 14.0;
 
   // Controllers and state
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
+  late AnimationController _animationController;
+  late Animation<Offset> _slideAnimation;
+
   bool _isDarkTiles = false;
   LatLng _currentMarkerPosition = _initialPosition;
   bool _isSearching = false;
+  bool _showBusInfo = false;
+  BusInfo? _selectedBusInfo;
+
+  // Sample bus data
+  final List<BusInfo> _buses = [
+    BusInfo(
+      busNumber: 'Bus 001',
+      route: 'Lucena -> Batangas',
+      eta: '5 mins',
+      location: const LatLng(13.7967, 121.0650),
+    ),
+    BusInfo(
+      busNumber: 'Bus 002',
+      route: 'Batangas -> Lucena',
+      eta: '3 hrs',
+      location: const LatLng(13.8150, 121.1367),
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, -1), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeInOut,
+          ),
+        );
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(children: [_buildMap(), _buildSearchBar()]),
+      body: Stack(
+        children: [
+          _buildMap(),
+          _buildSearchBar(),
+          if (_showBusInfo && _selectedBusInfo != null)
+            _buildBusInfoContainer(),
+        ],
+      ),
       floatingActionButton: _buildFloatingActionButtons(),
     );
   }
@@ -115,7 +175,7 @@ class _MapScreenState extends State<MapScreen> {
           flags: InteractiveFlag.all,
         ),
       ),
-      children: [_buildTileLayer(), _buildMarkerLayer()],
+      children: [_buildTileLayer(), _buildMarkerLayer(), _busLocationIcons()],
     );
   }
 
@@ -136,9 +196,41 @@ class _MapScreenState extends State<MapScreen> {
           point: _currentMarkerPosition,
           width: 60,
           height: 60,
-          child: const Icon(Icons.location_pin, size: 50, color: Colors.red),
+          child: const Icon(
+            Icons.person_pin_circle,
+            size: 50,
+            color: Colors.red,
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _busLocationIcons() {
+    return MarkerLayer(
+      markers: _buses.map((bus) {
+        return Marker(
+          point: bus.location,
+          width: 50,
+          height: 50,
+          child: GestureDetector(
+            onTap: () => _onBusTapped(bus),
+            child: Container(
+              decoration: BoxDecoration(
+                color: _selectedBusInfo?.busNumber == bus.busNumber
+                    ? Colors.orange
+                    : const Color.fromARGB(255, 54, 165, 244),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.directions_bus,
+                size: 40,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -184,6 +276,133 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  Widget _buildBusInfoContainer() {
+    return SafeArea(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 72, left: 16, right: 16),
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: Material(
+              color: Colors.white,
+              elevation: 8,
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.lightBlue.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.directions_bus,
+                                color: Colors.lightBlue,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              _selectedBusInfo!.busNumber,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                        GestureDetector(
+                          onTap: _closeBusInfo,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            child: const Icon(
+                              Icons.close,
+                              size: 20,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Route',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _selectedBusInfo!.route,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.access_time,
+                                size: 16,
+                                color: Colors.green.shade700,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'ETA: ${_selectedBusInfo!.eta}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.green.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFloatingActionButtons() {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -203,6 +422,23 @@ class _MapScreenState extends State<MapScreen> {
         ),
       ],
     );
+  }
+
+  void _onBusTapped(BusInfo busInfo) {
+    setState(() {
+      _selectedBusInfo = busInfo;
+      _showBusInfo = true;
+    });
+    _animationController.forward();
+  }
+
+  void _closeBusInfo() {
+    _animationController.reverse().then((_) {
+      setState(() {
+        _showBusInfo = false;
+        _selectedBusInfo = null;
+      });
+    });
   }
 
   Future<void> _searchLocation(String query) async {
