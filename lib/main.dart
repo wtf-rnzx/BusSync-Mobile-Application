@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:geolocator/geolocator.dart';
 
 void main() {
   runApp(BusSyncApp());
@@ -88,6 +89,22 @@ class BusInfo {
   });
 }
 
+// Distance info model
+class DistanceInfo {
+  final double distanceInMeters;
+  final List<LatLng> polylinePoints;
+
+  DistanceInfo({required this.distanceInMeters, required this.polylinePoints});
+
+  String get formattedDistance {
+    if (distanceInMeters < 1000) {
+      return '${distanceInMeters.toInt()} m';
+    } else {
+      return '${(distanceInMeters / 1000).toStringAsFixed(1)} km';
+    }
+  }
+}
+
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -96,8 +113,8 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
-  static const LatLng _initialPosition = LatLng(13.7564, 121.0583);
-  static const double _initialZoom = 14.0;
+  static const LatLng _initialPosition = LatLng(13.7900, 121.0620);
+  static const double _initialZoom = 15.0;
 
   // Controllers and state
   final MapController _mapController = MapController();
@@ -107,9 +124,15 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   bool _isDarkTiles = false;
   LatLng _currentMarkerPosition = _initialPosition;
+  LatLng? _userLocation;
   bool _isSearching = false;
   bool _showBusInfo = false;
+  bool _isLoadingLocation = false;
   BusInfo? _selectedBusInfo;
+  DistanceInfo? _selectedBusDistance;
+
+  // Distance calculator
+  final Distance _distance = Distance();
 
   // Sample bus data
   final List<BusInfo> _buses = [
@@ -175,7 +198,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           flags: InteractiveFlag.all,
         ),
       ),
-      children: [_buildTileLayer(), _buildMarkerLayer(), _busLocationIcons()],
+      children: [
+        _buildTileLayer(),
+        if (_selectedBusDistance != null) _buildPolylineLayer(),
+        _buildMarkerLayer(),
+        _busLocationIcons(),
+        if (_userLocation != null) _buildUserLocationMarker(),
+      ],
     );
   }
 
@@ -186,6 +215,18 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       subdomains: _isDarkTiles ? const ['a', 'b', 'c'] : const [''],
       userAgentPackageName: 'com.example.osm_map_demo',
+    );
+  }
+
+  Widget _buildPolylineLayer() {
+    return PolylineLayer(
+      polylines: [
+        Polyline(
+          points: _selectedBusDistance!.polylinePoints,
+          strokeWidth: 3.0,
+          color: Colors.blue.withOpacity(0.7),
+        ),
+      ],
     );
   }
 
@@ -206,13 +247,33 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildUserLocationMarker() {
+    return MarkerLayer(
+      markers: [
+        Marker(
+          point: _userLocation!,
+          width: 30,
+          height: 30,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.blue,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 3),
+            ),
+            child: const Icon(Icons.my_location, size: 20, color: Colors.white),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _busLocationIcons() {
     return MarkerLayer(
       markers: _buses.map((bus) {
         return Marker(
           point: bus.location,
-          width: 50,
-          height: 50,
+          width: 30,
+          height: 30,
           child: GestureDetector(
             onTap: () => _onBusTapped(bus),
             child: Container(
@@ -224,7 +285,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               ),
               child: const Icon(
                 Icons.directions_bus,
-                size: 40,
+                size: 20,
                 color: Colors.white,
               ),
             ),
@@ -393,6 +454,88 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                         ),
                       ],
                     ),
+                    // Distance Information Section
+                    if (_selectedBusDistance != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.blue.shade200,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.straighten,
+                              color: Colors.blue.shade700,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Distance from your location:',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade700,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                _selectedBusDistance!.formattedDistance,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    // Loading state for distance calculation
+                    if (_isLoadingLocation) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          children: [
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            SizedBox(width: 12),
+                            Text(
+                              'Calculating distance...',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -416,7 +559,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         const SizedBox(height: 8),
         FloatingActionButton.small(
           heroTag: 'center',
-          tooltip: 'Re‑center on Manila',
+          tooltip: 'Current Location',
           onPressed: _returnPosition,
           child: const Icon(Icons.my_location),
         ),
@@ -424,12 +567,42 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _onBusTapped(BusInfo busInfo) {
+  void _onBusTapped(BusInfo busInfo) async {
     setState(() {
       _selectedBusInfo = busInfo;
       _showBusInfo = true;
+      _isLoadingLocation = true;
+      _selectedBusDistance = null;
     });
+
     _animationController.forward();
+
+    // Calculate distance to selected bus
+    try {
+      LatLng userLoc = await _getCurrentUserLocation();
+      double distanceInMeters = _distance.as(
+        LengthUnit.Meter,
+        userLoc,
+        busInfo.location,
+      );
+
+      setState(() {
+        _userLocation = userLoc;
+        _selectedBusDistance = DistanceInfo(
+          distanceInMeters: distanceInMeters,
+          polylinePoints: [userLoc, busInfo.location],
+        );
+        _isLoadingLocation = false;
+      });
+
+      // Fit map to show both user and bus locations
+      _fitMapToBounds([userLoc, busInfo.location]);
+    } catch (e) {
+      setState(() {
+        _isLoadingLocation = false;
+      });
+      _showSnackBar('Failed to get location: $e');
+    }
   }
 
   void _closeBusInfo() {
@@ -437,8 +610,74 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       setState(() {
         _showBusInfo = false;
         _selectedBusInfo = null;
+        _selectedBusDistance = null;
       });
     });
+  }
+
+  Future<LatLng> _getCurrentUserLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Test if location services are enabled.
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw Exception('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        throw Exception('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception(
+        'Location permissions are permanently denied, we cannot request permissions.',
+      );
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    return LatLng(position.latitude, position.longitude);
+  }
+
+  void _fitMapToBounds(List<LatLng> points) {
+    if (points.isEmpty) return;
+
+    double minLat = points
+        .map((p) => p.latitude)
+        .reduce((a, b) => a < b ? a : b);
+    double maxLat = points
+        .map((p) => p.latitude)
+        .reduce((a, b) => a > b ? a : b);
+    double minLng = points
+        .map((p) => p.longitude)
+        .reduce((a, b) => a < b ? a : b);
+    double maxLng = points
+        .map((p) => p.longitude)
+        .reduce((a, b) => a > b ? a : b);
+
+    LatLng center = LatLng((minLat + maxLat) / 2, (minLng + maxLng) / 2);
+
+    // Calculate appropriate zoom level
+    double latDiff = maxLat - minLat;
+    double lngDiff = maxLng - minLng;
+    double maxDiff = latDiff > lngDiff ? latDiff : lngDiff;
+
+    double zoom = 15.0;
+    if (maxDiff > 0.1)
+      zoom = 10.0;
+    else if (maxDiff > 0.05)
+      zoom = 12.0;
+    else if (maxDiff > 0.01)
+      zoom = 14.0;
+
+    _mapController.move(center, zoom);
   }
 
   Future<void> _searchLocation(String query) async {
