@@ -123,7 +123,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   late Animation<Offset> _slideAnimation;
 
   bool _isDarkTiles = false;
-  LatLng _currentMarkerPosition = _initialPosition;
   LatLng? _userLocation;
   bool _isSearching = false;
   bool _showBusInfo = false;
@@ -201,7 +200,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       children: [
         _buildTileLayer(),
         if (_selectedBusDistance != null) _buildPolylineLayer(),
-        _buildMarkerLayer(),
         _busLocationIcons(),
         if (_userLocation != null) _buildUserLocationMarker(),
       ],
@@ -223,25 +221,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       polylines: [
         Polyline(
           points: _selectedBusDistance!.polylinePoints,
-          strokeWidth: 3.0,
-          color: Colors.blue.withOpacity(0.7),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMarkerLayer() {
-    return MarkerLayer(
-      markers: [
-        Marker(
-          point: _currentMarkerPosition,
-          width: 60,
-          height: 60,
-          child: const Icon(
-            Icons.person_pin_circle,
-            size: 50,
-            color: Colors.red,
-          ),
+          strokeWidth: 4.5,
+          color: Colors.blue.withOpacity(0.8),
+          borderStrokeWidth: 2.0,
+          borderColor: Colors.white.withOpacity(0.8),
         ),
       ],
     );
@@ -471,13 +454,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                         child: Row(
                           children: [
                             Icon(
-                              Icons.straighten,
+                              Icons.route,
                               color: Colors.blue.shade700,
                               size: 20,
                             ),
                             const SizedBox(width: 8),
                             const Text(
-                              'Distance from your location:',
+                              'Route distance to bus:',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500,
@@ -526,7 +509,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                             ),
                             SizedBox(width: 12),
                             Text(
-                              'Calculating distance...',
+                              'Calculating route...',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.black87,
@@ -560,13 +543,55 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         FloatingActionButton.small(
           heroTag: 'center',
           tooltip: 'Current Location',
-          onPressed: _returnPosition,
-          child: const Icon(Icons.my_location),
+          onPressed: _isLoadingLocation ? null : _returnPosition,
+          child: _isLoadingLocation
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Icon(Icons.my_location),
         ),
       ],
     );
   }
 
+  // NEW: OSRM Routing method to get road-following route
+  Future<List<LatLng>> _getOSRMRoute(LatLng start, LatLng end) async {
+    try {
+      final String url =
+          'https://router.project-osrm.org/route/v1/driving/'
+          '${start.longitude},${start.latitude};${end.longitude},${end.latitude}'
+          '?overview=full&geometries=geojson';
+
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['routes'] != null && data['routes'].isNotEmpty) {
+          final coordinates = data['routes'][0]['geometry']['coordinates'];
+
+          return coordinates
+              .map<LatLng>(
+                (coord) => LatLng(coord[1].toDouble(), coord[0].toDouble()),
+              )
+              .toList();
+        }
+      } else {
+        print('OSRM API error: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('OSRM routing error: $e');
+    }
+
+    // Fallback to straight line if routing fails
+    return [start, end];
+  }
+
+  // UPDATED: Bus tap handler with road-following routing
   void _onBusTapped(BusInfo busInfo) async {
     setState(() {
       _selectedBusInfo = busInfo;
@@ -577,26 +602,33 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
     _animationController.forward();
 
-    // Calculate distance to selected bus
     try {
       LatLng userLoc = await _getCurrentUserLocation();
-      double distanceInMeters = _distance.as(
-        LengthUnit.Meter,
-        userLoc,
-        busInfo.location,
-      );
+
+      // Get the actual route points following roads using OSRM
+      List<LatLng> routePoints = await _getOSRMRoute(userLoc, busInfo.location);
+
+      // Calculate total distance along the route
+      double totalDistance = 0;
+      for (int i = 0; i < routePoints.length - 1; i++) {
+        totalDistance += _distance.as(
+          LengthUnit.Meter,
+          routePoints[i],
+          routePoints[i + 1],
+        );
+      }
 
       setState(() {
         _userLocation = userLoc;
         _selectedBusDistance = DistanceInfo(
-          distanceInMeters: distanceInMeters,
-          polylinePoints: [userLoc, busInfo.location],
+          distanceInMeters: totalDistance,
+          polylinePoints: routePoints, // Now uses actual road path
         );
         _isLoadingLocation = false;
       });
 
-      // Fit map to show both user and bus locations
-      _fitMapToBounds([userLoc, busInfo.location]);
+      // Fit map to show the entire route
+      _fitMapToBounds(routePoints);
     } catch (e) {
       setState(() {
         _isLoadingLocation = false;
@@ -619,7 +651,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // Test if location services are enabled.
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       throw Exception('Location services are disabled.');
@@ -664,7 +695,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
     LatLng center = LatLng((minLat + maxLat) / 2, (minLng + maxLng) / 2);
 
-    // Calculate appropriate zoom level
     double latDiff = maxLat - minLat;
     double lngDiff = maxLng - minLng;
     double maxDiff = latDiff > lngDiff ? latDiff : lngDiff;
@@ -701,10 +731,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           final lon = double.parse(location['lon']);
           final newPosition = LatLng(lat, lon);
 
-          setState(() {
-            _currentMarkerPosition = newPosition;
-          });
-
           _mapController.move(newPosition, 15.0);
 
           _showSnackBar('Location found: ${location['display_name']}');
@@ -726,9 +752,27 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     setState(() => _isDarkTiles = !_isDarkTiles);
   }
 
-  void _returnPosition() {
-    _mapController.move(_initialPosition, _initialZoom);
-    setState(() => _currentMarkerPosition = _initialPosition);
+  // UPDATED: Return to actual user location
+  void _returnPosition() async {
+    try {
+      setState(() => _isLoadingLocation = true);
+
+      LatLng userLocation = await _getCurrentUserLocation();
+
+      _mapController.move(userLocation, _initialZoom);
+
+      setState(() {
+        _userLocation = userLocation;
+        _isLoadingLocation = false;
+      });
+
+      _showSnackBar('Centered on your current location');
+    } catch (e) {
+      setState(() => _isLoadingLocation = false);
+      _showSnackBar('Failed to get current location: $e');
+
+      _mapController.move(_initialPosition, _initialZoom);
+    }
   }
 
   void _showSnackBar(String message) {
