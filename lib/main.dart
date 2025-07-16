@@ -4,6 +4,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:geolocator/geolocator.dart';
+import '../routes/feedback_route.dart';
+import '../routes/driverInfo_route.dart';
 
 void main() {
   runApp(BusSyncApp());
@@ -74,18 +76,41 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-// Bus information model
+// Driver information model
+class DriverInfo {
+  final String driverName;
+  final String driverId;
+  final String busNumber;
+  final String plateNumber;
+  final String busType;
+  final String busRoute;
+  final String profileImage;
+
+  DriverInfo({
+    required this.driverName,
+    required this.driverId,
+    required this.busNumber,
+    required this.plateNumber,
+    required this.busType,
+    required this.busRoute,
+    this.profileImage = '',
+  });
+}
+
+// Bus information model (updated)
 class BusInfo {
   final String busNumber;
   final String route;
   final String eta;
   final LatLng location;
+  final DriverInfo driverInfo;
 
   BusInfo({
     required this.busNumber,
     required this.route,
     required this.eta,
     required this.location,
+    required this.driverInfo,
   });
 }
 
@@ -133,19 +158,35 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   // Distance calculator
   final Distance _distance = Distance();
 
-  // Sample bus data
+  // Sample bus data with driver info
   final List<BusInfo> _buses = [
     BusInfo(
       busNumber: 'Bus 001',
       route: 'Lucena -> Batangas',
       eta: '5 mins',
       location: const LatLng(13.7967, 121.0650),
+      driverInfo: DriverInfo(
+        driverName: 'Juan Dela Cruz',
+        driverId: 'DRV-001',
+        busNumber: 'Bus 001',
+        plateNumber: 'ABC-1234',
+        busType: 'Air-Conditioned',
+        busRoute: 'Lucena -> Batangas',
+      ),
     ),
     BusInfo(
       busNumber: 'Bus 002',
       route: 'Batangas -> Lucena',
       eta: '3 hrs',
       location: const LatLng(13.8150, 121.1367),
+      driverInfo: DriverInfo(
+        driverName: 'Maria Santos',
+        driverId: 'DRV-002',
+        busNumber: 'Bus 002',
+        plateNumber: 'XYZ-5678',
+        busType: 'Non Air-Conditioned',
+        busRoute: 'Batangas -> Lucena',
+      ),
     ),
   ];
 
@@ -490,6 +531,45 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                         ),
                       ),
                     ],
+
+                    // Action Buttons Section
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _navigateToFeedback(),
+                            icon: const Icon(Icons.feedback, size: 18),
+                            label: const Text('Feedback'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange.shade500,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _navigateToDriverInfo(),
+                            icon: const Icon(Icons.person, size: 18),
+                            label: const Text('Driver Info'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.lightBlue.shade600,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
                     // Loading state for distance calculation
                     if (_isLoadingLocation) ...[
                       const SizedBox(height: 16),
@@ -556,6 +636,26 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               : const Icon(Icons.my_location),
         ),
       ],
+    );
+  }
+
+  // Navigation methods
+  void _navigateToFeedback() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FeedbackScreen(busInfo: _selectedBusInfo!),
+      ),
+    );
+  }
+
+  void _navigateToDriverInfo() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            DriverInfoScreen(driverInfo: _selectedBusInfo!.driverInfo),
+      ),
     );
   }
 
@@ -700,9 +800,9 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     double maxDiff = latDiff > lngDiff ? latDiff : lngDiff;
 
     double zoom = 15.0;
-    if (maxDiff > 0.1)
+    if (maxDiff > 0.1) {
       zoom = 10.0;
-    else if (maxDiff > 0.05)
+    } else if (maxDiff > 0.05)
       zoom = 12.0;
     else if (maxDiff > 0.01)
       zoom = 14.0;
