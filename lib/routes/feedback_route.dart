@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../main.dart';
+import '../models/busInfo.dart';
 
 class FeedbackScreen extends StatefulWidget {
   final BusInfo busInfo;

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../main.dart';
+import '../models/driverInfo.dart';
 
 class DriverInfoScreen extends StatelessWidget {
   final DriverInfo driverInfo;
