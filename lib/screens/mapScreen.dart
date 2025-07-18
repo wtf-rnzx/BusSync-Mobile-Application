@@ -32,6 +32,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   bool _isLoadingLocation = false;
   BusInfo? _selectedBusInfo;
   DistanceInfo? _selectedBusDistance;
+  bool _isBusDropdownExpanded = false; // Add this for dropdown state
 
   // Distance calculator
   final Distance _distance = Distance();
@@ -64,6 +65,34 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         plateNumber: 'XYZ-5678',
         busType: 'Non Air-Conditioned',
         busRoute: 'Batangas -> Lucena',
+      ),
+    ),
+    BusInfo(
+      busNumber: 'Bus 003',
+      route: 'Lucena -> Manila',
+      eta: '2 hrs',
+      location: const LatLng(13.7800, 121.0500),
+      driverInfo: DriverInfo(
+        driverName: 'Pedro Reyes',
+        driverId: 'DRV-003',
+        busNumber: 'Bus 003',
+        plateNumber: 'DEF-9101',
+        busType: 'Air-Conditioned',
+        busRoute: 'Lucena -> Manila',
+      ),
+    ),
+    BusInfo(
+      busNumber: 'Bus 004',
+      route: 'Manila -> Lucena',
+      eta: '1 hr',
+      location: const LatLng(13.8000, 121.0800),
+      driverInfo: DriverInfo(
+        driverName: 'Ana Garcia',
+        driverId: 'DRV-004',
+        busNumber: 'Bus 004',
+        plateNumber: 'GHI-1213',
+        busType: 'Deluxe',
+        busRoute: 'Manila -> Lucena',
       ),
     ),
   ];
@@ -100,6 +129,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           _buildSearchBar(),
           if (_showBusInfo && _selectedBusInfo != null)
             _buildBusInfoContainer(),
+          _buildBusDropdown(),
         ],
       ),
       floatingActionButton: _buildFloatingActionButtons(),
@@ -134,6 +164,20 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
           ? AppConstants.darkTileSubdomains
           : AppConstants.lightTileSubdomains,
       userAgentPackageName: AppConstants.userAgentPackageName,
+    );
+  }
+
+  Widget _buildPolylineLayer() {
+    return PolylineLayer(
+      polylines: [
+        Polyline(
+          points: _selectedBusDistance!.polylinePoints,
+          strokeWidth: 4.5,
+          color: Colors.blue.withOpacity(0.8),
+          borderStrokeWidth: 2.0,
+          borderColor: Colors.white.withOpacity(0.8),
+        ),
+      ],
     );
   }
 
@@ -259,14 +303,14 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                               child: const Icon(
                                 Icons.directions_bus,
                                 color: Colors.lightBlue,
-                                size: 24,
+                                size: 19,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Text(
                               _selectedBusInfo!.busNumber,
                               style: const TextStyle(
-                                fontSize: 18,
+                                fontSize: 17,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black87,
                               ),
@@ -286,7 +330,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 3),
                     Row(
                       children: [
                         Expanded(
@@ -346,7 +390,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                     ),
                     // Distance Information Section
                     if (_selectedBusDistance != null) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 8),
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
@@ -378,7 +422,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
-                                vertical: 4,
+                                vertical: 2,
                               ),
                               decoration: BoxDecoration(
                                 color: Colors.blue.shade700,
@@ -399,18 +443,18 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                     ],
 
                     // Action Buttons Section
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 7),
                     Row(
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: () => _navigateToFeedback(),
-                            icon: const Icon(Icons.feedback, size: 18),
+                            icon: const Icon(Icons.feedback, size: 17),
                             label: const Text('Feedback'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.orange.shade500,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
@@ -421,12 +465,12 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: () => _navigateToDriverInfo(),
-                            icon: const Icon(Icons.person, size: 18),
+                            icon: const Icon(Icons.person, size: 17),
                             label: const Text('Driver Info'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.lightBlue.shade600,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
@@ -479,27 +523,27 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        FloatingActionButton.small(
-          heroTag: 'toggle',
-          tooltip: 'Toggle tile style',
-          onPressed: _changeTileStyle,
-          child: const Icon(Icons.layers),
-        ),
-        const SizedBox(height: 8),
-        FloatingActionButton.small(
-          heroTag: 'center',
-          tooltip: 'Current Location',
-          onPressed: _isLoadingLocation ? null : _returnPosition,
-          child: _isLoadingLocation
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
-              : const Icon(Icons.my_location),
+        SizedBox(
+          height: 55,
+          width: 55,
+          child: FloatingActionButton(
+            heroTag: 'center',
+            tooltip: 'Current Location',
+            onPressed: _isLoadingLocation ? null : _returnPosition,
+
+            backgroundColor: const Color.fromARGB(255, 45, 151, 201),
+
+            child: _isLoadingLocation
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Icon(Icons.my_location, color: Colors.white),
+          ),
         ),
       ],
     );
@@ -525,107 +569,42 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Enhanced OpenRouteService Routing method for accurate road-following polylines
-  Future<List<LatLng>> _getOpenRouteServiceRoute(
-    LatLng start,
-    LatLng end,
-  ) async {
+  // OSRM Routing method to get road-following route
+  Future<List<LatLng>> _getOSRMRoute(LatLng start, LatLng end) async {
     try {
-      final Map<String, dynamic> requestBody = {
-        'coordinates': [
-          [start.longitude, start.latitude],
-          [end.longitude, end.latitude],
-        ],
-        'format': 'geojson',
-        'geometry_simplify': false, // Keep all points for accuracy
-        'preference': 'recommended', // Use recommended routing
-        'units': 'm', // Use meters for distance
-        'geometry': true, // Include geometry in response
-        'instructions': false, // We don't need turn-by-turn instructions
-      };
+      final String url =
+          '${AppConstants.osrmBaseUrl}'
+          '${start.longitude},${start.latitude};${end.longitude},${end.latitude}'
+          '?overview=full&geometries=geojson';
 
-      final response = await http.post(
-        Uri.parse(AppConstants.openRouteServiceBaseUrl),
-        headers: {
-          'Authorization': AppConstants.openRouteServiceApiKey,
-          'Content-Type': 'application/json',
-          'Accept':
-              'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
-        },
-        body: json.encode(requestBody),
-      );
+      final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        if (data['routes'] != null && data['routes'].isNotEmpty) {
+          final coordinates = data['routes'][0]['geometry']['coordinates'];
 
-        if (data['features'] != null && data['features'].isNotEmpty) {
-          final feature = data['features'][0];
-          final geometry = feature['geometry'];
-
-          if (geometry != null && geometry['coordinates'] != null) {
-            final List<dynamic> coordinates = geometry['coordinates'];
-
-            // Convert coordinates to LatLng points
-            List<LatLng> routePoints = coordinates
-                .map<LatLng>(
-                  (coord) => LatLng(
-                    coord[1].toDouble(), // latitude
-                    coord[0].toDouble(), // longitude
-                  ),
-                )
-                .toList();
-
-            print(
-              'OpenRouteService: Generated ${routePoints.length} route points',
-            );
-            return routePoints;
-          }
+          return coordinates
+              .map<LatLng>(
+                (coord) => LatLng(coord[1].toDouble(), coord[0].toDouble()),
+              )
+              .toList();
         }
-
-        print('OpenRouteService: No valid geometry found in response');
       } else {
-        print('OpenRouteService API error: ${response.statusCode}');
-        print('Response body: ${response.body}');
-
-        // Try to parse error message
-        try {
-          final errorData = json.decode(response.body);
-          if (errorData['error'] != null) {
-            print('OpenRouteService error details: ${errorData['error']}');
-          }
-        } catch (e) {
-          print('Could not parse error response');
-        }
+        print('OSRM API error: ${response.statusCode}');
       }
     } catch (e) {
-      print('OpenRouteService routing error: $e');
+      print('OSRM routing error: $e');
     }
 
     // Fallback to straight line if routing fails
-    print('Falling back to straight line route');
     return [start, end];
   }
 
-  // Enhanced polyline layer with better styling for road accuracy
-  Widget _buildPolylineLayer() {
-    return PolylineLayer(
-      polylines: [
-        Polyline(
-          points: _selectedBusDistance!.polylinePoints,
-          strokeWidth: 5.0, // Slightly thicker for better visibility
-          color: Colors.blue.withOpacity(0.8),
-          borderStrokeWidth: 2.0,
-          borderColor: Colors.white.withOpacity(0.9),
-          // Use rounded line caps for smoother appearance
-          useStrokeWidthInMeter: false,
-        ),
-      ],
-    );
-  }
-
-  // Enhanced bus tap handler with better error handling
+  // Bus tap handler with road-following routing
   void _onBusTapped(BusInfo busInfo) async {
     setState(() {
+      _isBusDropdownExpanded = false;
       _selectedBusInfo = busInfo;
       _showBusInfo = true;
       _isLoadingLocation = true;
@@ -637,15 +616,8 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     try {
       LatLng userLoc = await _getCurrentUserLocation();
 
-      print(
-        'Getting route from ${userLoc.latitude}, ${userLoc.longitude} to ${busInfo.location.latitude}, ${busInfo.location.longitude}',
-      );
-
-      // Get the actual route points following roads using OpenRouteService
-      List<LatLng> routePoints = await _getOpenRouteServiceRoute(
-        userLoc,
-        busInfo.location,
-      );
+      // Get the actual route points following roads using OSRM
+      List<LatLng> routePoints = await _getOSRMRoute(userLoc, busInfo.location);
 
       // Calculate total distance along the route
       double totalDistance = 0;
@@ -657,10 +629,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         );
       }
 
-      print(
-        'Route calculated: ${routePoints.length} points, ${totalDistance.toStringAsFixed(0)}m total distance',
-      );
-
       setState(() {
         _userLocation = userLoc;
         _selectedBusDistance = DistanceInfo(
@@ -670,18 +638,57 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         _isLoadingLocation = false;
       });
 
-      // Fit map to show the entire route with some padding
+      // Fit map to show the entire route
       _fitMapToBounds(routePoints);
     } catch (e) {
       setState(() {
         _isLoadingLocation = false;
       });
-      print('Error in _onBusTapped: $e');
       _showSnackBar('Failed to get location: $e');
     }
   }
 
-  // Enhanced map bounds fitting with better zoom calculation
+  void _closeBusInfo() {
+    _animationController.reverse().then((_) {
+      setState(() {
+        _showBusInfo = false;
+        _selectedBusInfo = null;
+        _selectedBusDistance = null;
+        _isBusDropdownExpanded = true;
+      });
+    });
+  }
+
+  Future<LatLng> _getCurrentUserLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw Exception('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        throw Exception('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception(
+        'Location permissions are permanently denied, we cannot request permissions.',
+      );
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    return LatLng(position.latitude, position.longitude);
+  }
+
   void _fitMapToBounds(List<LatLng> points) {
     if (points.isEmpty) return;
 
@@ -698,34 +705,19 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         .map((p) => p.longitude)
         .reduce((a, b) => a > b ? a : b);
 
-    // Add padding to the bounds
-    double latPadding = (maxLat - minLat) * 0.1;
-    double lngPadding = (maxLng - minLng) * 0.1;
-
-    minLat -= latPadding;
-    maxLat += latPadding;
-    minLng -= lngPadding;
-    maxLng += lngPadding;
-
     LatLng center = LatLng((minLat + maxLat) / 2, (minLng + maxLng) / 2);
 
     double latDiff = maxLat - minLat;
     double lngDiff = maxLng - minLng;
     double maxDiff = latDiff > lngDiff ? latDiff : lngDiff;
 
-    // Better zoom level calculation
     double zoom = 15.0;
-    if (maxDiff > 0.2) {
-      zoom = 9.0;
-    } else if (maxDiff > 0.1) {
+    if (maxDiff > 0.1) {
       zoom = 10.0;
-    } else if (maxDiff > 0.05) {
+    } else if (maxDiff > 0.05)
       zoom = 12.0;
-    } else if (maxDiff > 0.02) {
-      zoom = 13.0;
-    } else if (maxDiff > 0.01) {
+    else if (maxDiff > 0.01)
       zoom = 14.0;
-    }
 
     _mapController.move(center, zoom);
   }
@@ -768,10 +760,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     }
   }
 
-  void _changeTileStyle() {
-    setState(() => _isDarkTiles = !_isDarkTiles);
-  }
-
   // Return to actual user location
   void _returnPosition() async {
     try {
@@ -804,45 +792,229 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  // Add the missing _getCurrentUserLocation method
-  Future<LatLng> _getCurrentUserLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
+  // Simple bus list widget positioned at the bottom
+  // New dropdown widget for Active Buses
+  Widget _buildBusDropdown() {
+    return Positioned(
+      left: 16,
+      right: 86,
+      bottom: 16,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Dropdown Header - always visible
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _isBusDropdownExpanded = !_isBusDropdownExpanded;
+                });
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 242, 242, 242),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                    bottomLeft: Radius.circular(5),
+                    bottomRight: Radius.circular(5),
+                  ),
 
-    // Test if location services are enabled.
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw Exception('Location services are disabled.');
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception('Location permissions are denied');
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      throw Exception(
-        'Location permissions are permanently denied, we cannot request permissions.',
-      );
-    }
-
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2), // Shadow color
+                      spreadRadius: 2, // How much the shadow spreads
+                      blurRadius: 6, // How soft the shadow is
+                      offset: Offset(0, 4), // X and Y offset
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.directions_bus, color: Colors.blue),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Active Buses',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      margin: EdgeInsets.only(left: 10.0),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${_buses.length} Active',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    AnimatedRotation(
+                      turns: _isBusDropdownExpanded ? 0.5 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: Colors.blue,
+                        size: 24,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Expandable Bus List with animation
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              height: _isBusDropdownExpanded ? 200 : 0,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(16),
+                  bottomRight: Radius.circular(16),
+                ),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    ),
+                  ),
+                  child: ListView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: _buses.length,
+                    itemBuilder: (context, index) {
+                      final bus = _buses[index];
+                      return _buildDropdownBusItem(bus);
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
-
-    return LatLng(position.latitude, position.longitude);
   }
 
-  // Add the missing _closeBusInfo method
-  void _closeBusInfo() {
-    setState(() {
-      _showBusInfo = false;
-      _selectedBusInfo = null;
-      _selectedBusDistance = null;
-    });
-    _animationController.reverse();
+  // Bus list item for dropdown
+  Widget _buildDropdownBusItem(BusInfo bus) {
+    final bool isSelected = _selectedBusInfo?.busNumber == bus.busNumber;
+
+    return InkWell(
+      onTap: () => _onBusTapped(
+        bus,
+      ), // This will close dropdown and open animation container
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+          color: isSelected ? Colors.blue[50] : Colors.transparent,
+        ),
+        child: Row(
+          children: [
+            // Bus icon
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.blue[100] : Colors.blue[50],
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                Icons.directions_bus,
+                color: isSelected ? Colors.blue[700] : Colors.blue,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Bus info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    bus.busNumber,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? Colors.blue[700] : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    bus.route,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(width: 6),
+                  // ETA info
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        size: 12,
+                        color: Colors.grey[500],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'ETA: ${bus.eta}',
+                        style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Status and action indicators
+            Column(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Icon(
+                  Icons.location_on,
+                  color: isSelected ? Colors.blue[700] : Colors.blue,
+                  size: 16,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
