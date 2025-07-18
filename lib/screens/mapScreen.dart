@@ -137,20 +137,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildPolylineLayer() {
-    return PolylineLayer(
-      polylines: [
-        Polyline(
-          points: _selectedBusDistance!.polylinePoints,
-          strokeWidth: 4.5,
-          color: Colors.blue.withOpacity(0.8),
-          borderStrokeWidth: 2.0,
-          borderColor: Colors.white.withOpacity(0.8),
-        ),
-      ],
-    );
-  }
-
   Widget _buildUserLocationMarker() {
     return MarkerLayer(
       markers: [
@@ -539,39 +525,105 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     );
   }
 
-  // OSRM Routing method to get road-following route
-  Future<List<LatLng>> _getOSRMRoute(LatLng start, LatLng end) async {
+  // Enhanced OpenRouteService Routing method for accurate road-following polylines
+  Future<List<LatLng>> _getOpenRouteServiceRoute(
+    LatLng start,
+    LatLng end,
+  ) async {
     try {
-      final String url =
-          '${AppConstants.osrmBaseUrl}'
-          '${start.longitude},${start.latitude};${end.longitude},${end.latitude}'
-          '?overview=full&geometries=geojson';
+      final Map<String, dynamic> requestBody = {
+        'coordinates': [
+          [start.longitude, start.latitude],
+          [end.longitude, end.latitude],
+        ],
+        'format': 'geojson',
+        'geometry_simplify': false, // Keep all points for accuracy
+        'preference': 'recommended', // Use recommended routing
+        'units': 'm', // Use meters for distance
+        'geometry': true, // Include geometry in response
+        'instructions': false, // We don't need turn-by-turn instructions
+      };
 
-      final response = await http.get(Uri.parse(url));
+      final response = await http.post(
+        Uri.parse(AppConstants.openRouteServiceBaseUrl),
+        headers: {
+          'Authorization': AppConstants.openRouteServiceApiKey,
+          'Content-Type': 'application/json',
+          'Accept':
+              'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
+        },
+        body: json.encode(requestBody),
+      );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        if (data['routes'] != null && data['routes'].isNotEmpty) {
-          final coordinates = data['routes'][0]['geometry']['coordinates'];
 
-          return coordinates
-              .map<LatLng>(
-                (coord) => LatLng(coord[1].toDouble(), coord[0].toDouble()),
-              )
-              .toList();
+        if (data['features'] != null && data['features'].isNotEmpty) {
+          final feature = data['features'][0];
+          final geometry = feature['geometry'];
+
+          if (geometry != null && geometry['coordinates'] != null) {
+            final List<dynamic> coordinates = geometry['coordinates'];
+
+            // Convert coordinates to LatLng points
+            List<LatLng> routePoints = coordinates
+                .map<LatLng>(
+                  (coord) => LatLng(
+                    coord[1].toDouble(), // latitude
+                    coord[0].toDouble(), // longitude
+                  ),
+                )
+                .toList();
+
+            print(
+              'OpenRouteService: Generated ${routePoints.length} route points',
+            );
+            return routePoints;
+          }
         }
+
+        print('OpenRouteService: No valid geometry found in response');
       } else {
-        print('OSRM API error: ${response.statusCode}');
+        print('OpenRouteService API error: ${response.statusCode}');
+        print('Response body: ${response.body}');
+
+        // Try to parse error message
+        try {
+          final errorData = json.decode(response.body);
+          if (errorData['error'] != null) {
+            print('OpenRouteService error details: ${errorData['error']}');
+          }
+        } catch (e) {
+          print('Could not parse error response');
+        }
       }
     } catch (e) {
-      print('OSRM routing error: $e');
+      print('OpenRouteService routing error: $e');
     }
 
     // Fallback to straight line if routing fails
+    print('Falling back to straight line route');
     return [start, end];
   }
 
-  // Bus tap handler with road-following routing
+  // Enhanced polyline layer with better styling for road accuracy
+  Widget _buildPolylineLayer() {
+    return PolylineLayer(
+      polylines: [
+        Polyline(
+          points: _selectedBusDistance!.polylinePoints,
+          strokeWidth: 5.0, // Slightly thicker for better visibility
+          color: Colors.blue.withOpacity(0.8),
+          borderStrokeWidth: 2.0,
+          borderColor: Colors.white.withOpacity(0.9),
+          // Use rounded line caps for smoother appearance
+          useStrokeWidthInMeter: false,
+        ),
+      ],
+    );
+  }
+
+  // Enhanced bus tap handler with better error handling
   void _onBusTapped(BusInfo busInfo) async {
     setState(() {
       _selectedBusInfo = busInfo;
@@ -585,8 +637,15 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     try {
       LatLng userLoc = await _getCurrentUserLocation();
 
-      // Get the actual route points following roads using OSRM
-      List<LatLng> routePoints = await _getOSRMRoute(userLoc, busInfo.location);
+      print(
+        'Getting route from ${userLoc.latitude}, ${userLoc.longitude} to ${busInfo.location.latitude}, ${busInfo.location.longitude}',
+      );
+
+      // Get the actual route points following roads using OpenRouteService
+      List<LatLng> routePoints = await _getOpenRouteServiceRoute(
+        userLoc,
+        busInfo.location,
+      );
 
       // Calculate total distance along the route
       double totalDistance = 0;
@@ -598,6 +657,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         );
       }
 
+      print(
+        'Route calculated: ${routePoints.length} points, ${totalDistance.toStringAsFixed(0)}m total distance',
+      );
+
       setState(() {
         _userLocation = userLoc;
         _selectedBusDistance = DistanceInfo(
@@ -607,56 +670,18 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         _isLoadingLocation = false;
       });
 
-      // Fit map to show the entire route
+      // Fit map to show the entire route with some padding
       _fitMapToBounds(routePoints);
     } catch (e) {
       setState(() {
         _isLoadingLocation = false;
       });
+      print('Error in _onBusTapped: $e');
       _showSnackBar('Failed to get location: $e');
     }
   }
 
-  void _closeBusInfo() {
-    _animationController.reverse().then((_) {
-      setState(() {
-        _showBusInfo = false;
-        _selectedBusInfo = null;
-        _selectedBusDistance = null;
-      });
-    });
-  }
-
-  Future<LatLng> _getCurrentUserLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw Exception('Location services are disabled.');
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception('Location permissions are denied');
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      throw Exception(
-        'Location permissions are permanently denied, we cannot request permissions.',
-      );
-    }
-
-    Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-
-    return LatLng(position.latitude, position.longitude);
-  }
-
+  // Enhanced map bounds fitting with better zoom calculation
   void _fitMapToBounds(List<LatLng> points) {
     if (points.isEmpty) return;
 
@@ -673,19 +698,34 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         .map((p) => p.longitude)
         .reduce((a, b) => a > b ? a : b);
 
+    // Add padding to the bounds
+    double latPadding = (maxLat - minLat) * 0.1;
+    double lngPadding = (maxLng - minLng) * 0.1;
+
+    minLat -= latPadding;
+    maxLat += latPadding;
+    minLng -= lngPadding;
+    maxLng += lngPadding;
+
     LatLng center = LatLng((minLat + maxLat) / 2, (minLng + maxLng) / 2);
 
     double latDiff = maxLat - minLat;
     double lngDiff = maxLng - minLng;
     double maxDiff = latDiff > lngDiff ? latDiff : lngDiff;
 
+    // Better zoom level calculation
     double zoom = 15.0;
-    if (maxDiff > 0.1) {
+    if (maxDiff > 0.2) {
+      zoom = 9.0;
+    } else if (maxDiff > 0.1) {
       zoom = 10.0;
-    } else if (maxDiff > 0.05)
+    } else if (maxDiff > 0.05) {
       zoom = 12.0;
-    else if (maxDiff > 0.01)
+    } else if (maxDiff > 0.02) {
+      zoom = 13.0;
+    } else if (maxDiff > 0.01) {
       zoom = 14.0;
+    }
 
     _mapController.move(center, zoom);
   }
@@ -762,5 +802,47 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  // Add the missing _getCurrentUserLocation method
+  Future<LatLng> _getCurrentUserLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Test if location services are enabled.
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw Exception('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        throw Exception('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception(
+        'Location permissions are permanently denied, we cannot request permissions.',
+      );
+    }
+
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    return LatLng(position.latitude, position.longitude);
+  }
+
+  // Add the missing _closeBusInfo method
+  void _closeBusInfo() {
+    setState(() {
+      _showBusInfo = false;
+      _selectedBusInfo = null;
+      _selectedBusDistance = null;
+    });
+    _animationController.reverse();
   }
 }

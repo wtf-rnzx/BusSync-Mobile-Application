@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
-import '../screens/splashScreen.dart';
-import '../screens/mapScreen.dart';
-import '../screens/notificationScreen.dart';
-import '../screens/profileScreen.dart';
+import 'package:provider/provider.dart';
+import 'services/authService.dart';
+import 'screens/splashScreen.dart';
+import 'screens/mapScreen.dart';
+import 'screens/notificationScreen.dart';
+import 'screens/profileScreen.dart';
+import 'screens/loginScreen.dart';
+import 'screens/signupScreen.dart';
 
 void main() {
-  runApp(BusSyncApp());
+  runApp(const BusSyncApp());
 }
 
 class BusSyncApp extends StatelessWidget {
@@ -13,14 +17,70 @@ class BusSyncApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'BusSync Mobile Application',
-      theme: ThemeData(
-        primarySwatch: Colors.lightBlue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+    return ChangeNotifierProvider(
+      create: (context) => AuthService(),
+      child: MaterialApp(
+        title: 'BusSync Mobile Application',
+        theme: ThemeData(
+          primarySwatch: Colors.lightBlue,
+          visualDensity: VisualDensity.adaptivePlatformDensity,
+        ),
+        home: const AuthWrapper(),
+        routes: {
+          '/login': (context) => const LoginScreen(),
+          '/signup': (context) => const SignupScreen(),
+          '/main': (context) => const MainScreen(),
+        },
+        debugShowCheckedModeBanner: false,
       ),
-      home: const SplashScreen(),
-      debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthStatus();
+  }
+
+  Future<void> _checkAuthStatus() async {
+    // Show splash screen for a minimum duration to be visible
+    await Future.delayed(const Duration(seconds: 2));
+
+    // Give time for AuthService to load user data
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const SplashScreen();
+    }
+
+    return Consumer<AuthService>(
+      builder: (context, authService, child) {
+        if (authService.isAuthenticated) {
+          return const MainScreen();
+        } else {
+          return const LoginScreen();
+        }
+      },
     );
   }
 }
