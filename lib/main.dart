@@ -7,7 +7,6 @@ import 'screens/notificationScreen.dart';
 import 'screens/profileScreen.dart';
 import 'screens/loginScreen.dart';
 import 'screens/signupScreen.dart';
-import 'screens/onboardingScreen.dart';
 
 void main() {
   runApp(const BusSyncApp());
@@ -31,7 +30,6 @@ class BusSyncApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           '/signup': (context) => const SignupScreen(),
           '/main': (context) => const MainScreen(),
-          '/onboarding': (context) => const OnboardingScreen(),
         },
         debugShowCheckedModeBanner: false,
       ),
@@ -52,12 +50,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   void initState() {
     super.initState();
-    _initializeApp();
+    _checkAuthStatus();
   }
 
-  Future<void> _initializeApp() async {
+  Future<void> _checkAuthStatus() async {
     // Show splash screen for a minimum duration to be visible
     await Future.delayed(const Duration(seconds: 2));
+
+    // Give time for AuthService to load user data
+    await Future.delayed(const Duration(milliseconds: 100));
 
     if (mounted) {
       setState(() {
@@ -75,24 +76,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return Consumer<AuthService>(
       builder: (context, authService, child) {
         if (authService.isAuthenticated) {
-          return FutureBuilder<bool>(
-            future: authService.hasCompletedOnboarding(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
-
-              final hasCompletedOnboarding = snapshot.data ?? false;
-
-              if (hasCompletedOnboarding) {
-                return const MainScreen();
-              } else {
-                return const OnboardingScreen();
-              }
-            },
-          );
+          return const MainScreen();
         } else {
           return const LoginScreen();
         }

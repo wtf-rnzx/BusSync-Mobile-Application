@@ -84,7 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Icon(Icons.check_circle_outline, color: Colors.white),
                     SizedBox(width: 12),
-                    Text('Welcome back!'),
+                    Text('Welcome!'),
                   ],
                 ),
                 backgroundColor: Colors.green.shade600,

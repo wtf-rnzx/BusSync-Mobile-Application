@@ -43,15 +43,7 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.lightBlue.shade600,
-              Colors.lightBlue.shade400,
-              Colors.lightBlue.shade200,
-            ],
-          ),
+          color: const Color.fromARGB(255, 255, 255, 255),
         ),
         child: Center(
           child: AnimatedBuilder(
@@ -64,59 +56,46 @@ class _SplashScreenState extends State<SplashScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // App Logo
-                      Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.directions_bus_rounded,
-                          size: 80,
-                          color: Colors.lightBlue.shade600,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-
-                      // App Name
-                      const Text(
-                        'BusSync',
-                        style: TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 2,
+                      Center(
+                        child: Container(
+                          height: 270,
+                          width: 270,
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(
+                              255,
+                              255,
+                              255,
+                              255,
+                            ), // Background color
+                            borderRadius: BorderRadius.circular(
+                              16,
+                            ), // Optional: rounded corners
+                          ),
+                          padding: EdgeInsets.all(
+                            2,
+                          ), // Optional: space inside the container
+                          child: Image.asset(
+                            'assets/images/BusSync_Logo.png',
+                            height: 300,
+                            width: 300,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-
                       // App Tagline
-                      Text(
-                        'Real-time Bus Tracking',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.white.withOpacity(0.9),
-                          fontWeight: FontWeight.w400,
-                        ),
-                      ),
-                      const SizedBox(height: 60),
 
                       // Loading Indicator
                       SizedBox(
                         width: 40,
                         height: 40,
                         child: CircularProgressIndicator(
-                          strokeWidth: 3,
+                          strokeWidth: 5,
                           valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white.withOpacity(0.8),
+                            const Color.fromARGB(
+                              255,
+                              0,
+                              53,
+                              70,
+                            ).withOpacity(0.8),
                           ),
                         ),
                       ),

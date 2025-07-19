@@ -61,18 +61,9 @@ class ProfileScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.lightBlue.shade200.withOpacity(
-                                  0.5,
-                                ),
-                                blurRadius: 15,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
                           ),
                           child: CircleAvatar(
-                            radius: 45,
+                            radius: 55,
                             backgroundColor: Colors.lightBlue.shade50,
                             child: Text(
                               _getInitials(userData['fullName'] ?? 'User'),
@@ -380,6 +371,7 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.white,
         title: Row(
           children: [
             Container(
@@ -394,8 +386,9 @@ class ProfileScreen extends StatelessWidget {
                 size: 20,
               ),
             ),
-            const SizedBox(width: 12),
-            const Text('Edit Profile'),
+            const SizedBox(width: 23),
+            const Text('Edit Profile', style: TextStyle(fontSize: 19)),
+            const SizedBox(height: 50),
           ],
         ),
         content: Form(
@@ -448,6 +441,7 @@ class ProfileScreen extends StatelessWidget {
                   return null;
                 },
               ),
+              const SizedBox(height: 10),
             ],
           ),
         ),
@@ -520,6 +514,7 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.white,
         title: Row(
           children: [
             Container(

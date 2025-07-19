@@ -67,34 +67,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         busRoute: 'Batangas -> Lucena',
       ),
     ),
-    BusInfo(
-      busNumber: 'Bus 003',
-      route: 'Lucena -> Manila',
-      eta: '2 hrs',
-      location: const LatLng(13.7800, 121.0500),
-      driverInfo: DriverInfo(
-        driverName: 'Pedro Reyes',
-        driverId: 'DRV-003',
-        busNumber: 'Bus 003',
-        plateNumber: 'DEF-9101',
-        busType: 'Air-Conditioned',
-        busRoute: 'Lucena -> Manila',
-      ),
-    ),
-    BusInfo(
-      busNumber: 'Bus 004',
-      route: 'Manila -> Lucena',
-      eta: '1 hr',
-      location: const LatLng(13.8000, 121.0800),
-      driverInfo: DriverInfo(
-        driverName: 'Ana Garcia',
-        driverId: 'DRV-004',
-        busNumber: 'Bus 004',
-        plateNumber: 'GHI-1213',
-        busType: 'Deluxe',
-        busRoute: 'Manila -> Lucena',
-      ),
-    ),
   ];
 
   @override
@@ -531,7 +503,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             tooltip: 'Current Location',
             onPressed: _isLoadingLocation ? null : _returnPosition,
 
-            backgroundColor: const Color.fromARGB(255, 45, 151, 201),
+            backgroundColor: Colors.lightBlue.shade600,
 
             child: _isLoadingLocation
                 ? const SizedBox(
@@ -825,7 +797,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 242, 242, 242),
+                  color: Colors.white,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(20),
                     topRight: Radius.circular(20),
@@ -948,7 +920,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Icon(
-                Icons.directions_bus,
+                Icons.directions,
                 color: isSelected ? Colors.blue[700] : Colors.blue,
                 size: 20,
               ),
@@ -1003,12 +975,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                     color: Colors.green,
                     shape: BoxShape.circle,
                   ),
-                ),
-                const SizedBox(height: 4),
-                Icon(
-                  Icons.location_on,
-                  color: isSelected ? Colors.blue[700] : Colors.blue,
-                  size: 16,
                 ),
               ],
             ),
