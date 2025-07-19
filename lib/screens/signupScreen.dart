@@ -200,7 +200,10 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.lightBlue.shade600, width: 2),
+          borderSide: BorderSide(
+            color: Color.fromARGB(255, 79, 218, 176),
+            width: 2,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -233,8 +236,14 @@ class _SignupScreenState extends State<SignupScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             children: [
-              const SizedBox(height: 20),
-
+              Center(
+                child: Image.asset(
+                  'assets/images/signup.png',
+                  height: 220,
+                  width: 220,
+                ),
+              ),
+              const SizedBox(height: 10),
               // Header Section
               Text(
                 'Create Account',
@@ -249,7 +258,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 'Join BusSync for real-time bus tracking',
                 style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 15),
 
               // Signup Form Card
               Container(
@@ -358,7 +367,7 @@ class _SignupScreenState extends State<SignupScreen> {
                                   _acceptTerms = value ?? false;
                                 });
                               },
-                              activeColor: Colors.lightBlue.shade600,
+                              activeColor: Color.fromARGB(255, 79, 218, 176),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(4),
                               ),
@@ -391,8 +400,8 @@ class _SignupScreenState extends State<SignupScreen> {
                           borderRadius: BorderRadius.circular(16),
                           gradient: LinearGradient(
                             colors: [
-                              Colors.lightBlue.shade600,
-                              Colors.lightBlue.shade400,
+                              const Color.fromARGB(255, 79, 218, 176),
+                              const Color.fromARGB(255, 79, 223, 189),
                             ],
                           ),
                         ),
@@ -428,7 +437,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 12),
 
               // Login link
               Row(

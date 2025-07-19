@@ -118,21 +118,16 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Logo and Title Section
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.lightBlue.shade50,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.directions_bus_rounded,
-                    size: 64,
-                    color: Colors.lightBlue.shade600,
+                Center(
+                  child: Image.asset(
+                    'assets/images/login.png',
+                    height: 220,
+                    width: 220,
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 10),
                 Text(
-                  'Welcome Back',
+                  'Login',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
@@ -144,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   'Sign in to continue to BusSync',
                   style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 18),
 
                 // Login Form Card
                 Container(
