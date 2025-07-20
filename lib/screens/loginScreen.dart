@@ -77,23 +77,47 @@ class _LoginScreenState extends State<LoginScreen> {
             );
           }
         } else {
+          // Show login success dialog
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Row(
-                  children: [
-                    Icon(Icons.check_circle_outline, color: Colors.white),
-                    SizedBox(width: 12),
-                    Text('Welcome!'),
-                  ],
-                ),
-                backgroundColor: Colors.green.shade600,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+            showDialog(
+              context: context,
+              barrierDismissible: true, // Allow dismissing by clicking outside
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 64),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'You are logged in!',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Welcome to BusSync',
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                );
+              },
             );
+
+            // Auto close dialog and navigate after 2 seconds
+            Future.delayed(const Duration(seconds: 2), () {
+              if (mounted) {
+                Navigator.of(context).pop(); // Close dialog
+                // The AuthWrapper will automatically redirect to MainScreen (MapScreen)
+                // since the user is now authenticated
+              }
+            });
           }
         }
       } finally {

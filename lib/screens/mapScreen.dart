@@ -25,7 +25,6 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<Offset> _slideAnimation;
 
-  bool _isDarkTiles = false;
   LatLng? _userLocation;
   bool _isSearching = false;
   bool _showBusInfo = false;
@@ -119,23 +118,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         ),
       ),
       children: [
-        _buildTileLayer(),
         if (_selectedBusDistance != null) _buildPolylineLayer(),
         _busLocationIcons(),
         if (_userLocation != null) _buildUserLocationMarker(),
       ],
-    );
-  }
-
-  Widget _buildTileLayer() {
-    return TileLayer(
-      urlTemplate: _isDarkTiles
-          ? AppConstants.darkTileUrl
-          : AppConstants.lightTileUrl,
-      subdomains: _isDarkTiles
-          ? AppConstants.darkTileSubdomains
-          : AppConstants.lightTileSubdomains,
-      userAgentPackageName: AppConstants.userAgentPackageName,
     );
   }
 
