@@ -1,6 +1,12 @@
-# flutter_application_1
+# BusSync Mobile Application
 
-A new Flutter project.
+This application aims to benefits all the bus passengers for the development of a real-time GPS 
+tracking and monitoring system using IoT devices, cloud computing and mobile 
+application. This system will address the critical problem in modern transportation 
+efficiency and safety most especially in buses. By gathering real-time data on the 
+bus location, speed, distance, and also its estimated time intervals, this research will 
+provide a precise monitoring of bus operations, reducing delays and optimizing 
+route planning.
 
 ## Getting Started
 
