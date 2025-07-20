@@ -7,7 +7,7 @@ and improves overall satisfaction of all the commuters that plan to ride a bus.
 This app caters to diverse users, including students, employees, and elderly or disabled 
 passengers who rely heavily on punctuality.
 
-✔️ Main Features:
+✅ Main Features:
 - 🗺️   Interactive Map View: Live route visualization and estimated distance/time using Map APIs
 - 📍 Real-time bus information: Live information of the bus such as ETA, Location, and Distance while travelling
 - 🔔 Notification: Get alerts for important events (e.g. Announcement, Bus Update, System Alert)
