@@ -1,12 +1,13 @@
 # BusSync Mobile Application
 
-This application aims to benefits all the bus passengers for the development of a real-time GPS 
-tracking and monitoring system using IoT devices, cloud computing and mobile 
-application. This system will address the critical problem in modern transportation 
-efficiency and safety most especially in buses. By gathering real-time data on the 
-bus location, speed, distance, and also its estimated time intervals, this research will 
-provide a precise monitoring of bus operations, reducing delays and optimizing 
-route planning.
+This mobile app for aims to monitor and track the real-time bus location and 
+its estimated arrival that can be used by all commuters. The app empowers 
+passengers to plan their schedule more effectively, reducing frustration and waiting 
+and improves overall satisfaction of all the commuters that plan to ride a bus. 
+This app caters to diverse users, including students, employees, and elderly or disabled 
+passengers who rely heavily on punctuality.
+
+
 
 ## Getting Started
 
