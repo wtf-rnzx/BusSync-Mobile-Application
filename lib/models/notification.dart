@@ -16,4 +16,22 @@ class AppNotification {
     required this.type,
     this.isRead = false,
   });
+
+  AppNotification copyWith({
+    String? id,
+    String? title,
+    String? message,
+    DateTime? timestamp,
+    NotificationType? type,
+    bool? isRead,
+  }) {
+    return AppNotification(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      message: message ?? this.message,
+      timestamp: timestamp ?? this.timestamp,
+      type: type ?? this.type,
+      isRead: isRead ?? this.isRead,
+    );
+  }
 }

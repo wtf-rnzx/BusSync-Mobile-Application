@@ -25,6 +25,7 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<Offset> _slideAnimation;
 
+  bool _isDarkTiles = false;
   LatLng? _userLocation;
   bool _isSearching = false;
   bool _showBusInfo = false;
@@ -40,30 +41,44 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   final List<BusInfo> _buses = [
     BusInfo(
       busNumber: 'Bus 001',
-      route: 'Lucena -> Batangas',
+      route: 'Lucena ---> Batangas',
       eta: '5 mins',
       location: const LatLng(13.7967, 121.0650),
       driverInfo: DriverInfo(
-        driverName: 'Juan Dela Cruz',
+        driverName: 'Bench Dela Luna',
         driverId: 'DRV-001',
         busNumber: 'Bus 001',
         plateNumber: 'ABC-1234',
         busType: 'Air-Conditioned',
-        busRoute: 'Lucena -> Batangas',
+        busRoute: 'Lucena ---> Batangas',
       ),
     ),
     BusInfo(
       busNumber: 'Bus 002',
-      route: 'Batangas -> Lucena',
+      route: 'Batangas ---> Lucena',
       eta: '3 hrs',
       location: const LatLng(13.8150, 121.1367),
       driverInfo: DriverInfo(
-        driverName: 'Maria Santos',
+        driverName: 'Vic Ramirez',
         driverId: 'DRV-002',
         busNumber: 'Bus 002',
-        plateNumber: 'XYZ-5678',
+        plateNumber: 'DEF-5678',
         busType: 'Non Air-Conditioned',
-        busRoute: 'Batangas -> Lucena',
+        busRoute: 'Batangas ---> Lucena',
+      ),
+    ),
+    BusInfo(
+      busNumber: 'Bus 003',
+      route: 'Batangas ---> Lucena',
+      eta: '3 hrs',
+      location: const LatLng(13.8043, 121.2955),
+      driverInfo: DriverInfo(
+        driverName: 'Frank Badion',
+        driverId: 'DRV-003',
+        busNumber: 'Bus 003',
+        plateNumber: 'GHI-9101',
+        busType: 'Air-Conditioned',
+        busRoute: 'Batangas ---> Lucena',
       ),
     ),
   ];
@@ -118,10 +133,23 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         ),
       ),
       children: [
+        _buildTileLayer(),
         if (_selectedBusDistance != null) _buildPolylineLayer(),
         _busLocationIcons(),
         if (_userLocation != null) _buildUserLocationMarker(),
       ],
+    );
+  }
+
+  Widget _buildTileLayer() {
+    return TileLayer(
+      urlTemplate: _isDarkTiles
+          ? AppConstants.darkTileUrl
+          : AppConstants.lightTileUrl,
+      subdomains: _isDarkTiles
+          ? AppConstants.darkTileSubdomains
+          : AppConstants.lightTileSubdomains,
+      userAgentPackageName: AppConstants.userAgentPackageName,
     );
   }
 
